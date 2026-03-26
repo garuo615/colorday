@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FIXED_CATEGORIES, getCategoryColor } from '../utils/colors';
 import type { Task } from '../types';
 
@@ -70,8 +71,8 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50" style={{ zIndex: 9999 }}>
       <div
         className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl flex flex-col"
         style={{ maxHeight: '90dvh' }}
@@ -83,7 +84,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
 
         {/* Scrollable content */}
         <div
-          className="overflow-y-auto flex-1 px-6 pb-6 space-y-5"
+          className="overflow-y-auto flex-1 px-6 space-y-5"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         >
           <h2 className="text-xl font-bold text-gray-800">タスクを編集</h2>
@@ -169,7 +170,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           {/* Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 pb-2">
             <button
               onClick={() => onDelete(task.id)}
               className="py-3 px-4 rounded-xl border border-red-300 text-red-500 text-sm font-medium hover:bg-red-50 transition"
@@ -191,6 +192,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

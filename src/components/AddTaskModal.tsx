@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FIXED_CATEGORIES, getCategoryColor } from '../utils/colors';
 import type { Task } from '../types';
 
@@ -77,8 +78,8 @@ export const AddTaskModal: React.FC<Props> = ({
     onSave(category, taskName.trim(), startTime, endTime);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50" style={{ zIndex: 9999 }}>
       <div
         className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl flex flex-col"
         style={{ maxHeight: '90dvh' }}
@@ -90,7 +91,7 @@ export const AddTaskModal: React.FC<Props> = ({
 
         {/* Scrollable content */}
         <div
-          className="overflow-y-auto flex-1 px-6 pb-6 space-y-5"
+          className="overflow-y-auto flex-1 px-6 space-y-5"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         >
           <h2 className="text-xl font-bold text-gray-800">タスクを追加</h2>
@@ -177,7 +178,7 @@ export const AddTaskModal: React.FC<Props> = ({
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           {/* Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 pb-2">
             <button
               onClick={onCancel}
               className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
@@ -193,6 +194,7 @@ export const AddTaskModal: React.FC<Props> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
