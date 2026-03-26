@@ -62,5 +62,13 @@ export function useTaskStore() {
     });
   }, []);
 
-  return { tasks, addTask, deleteTask };
+  const updateTask = useCallback((updated: Task) => {
+    setTasks((prev) => {
+      const next = prev.map((t) => (t.id === updated.id ? updated : t));
+      saveTasks(next);
+      return next;
+    });
+  }, []);
+
+  return { tasks, addTask, deleteTask, updateTask };
 }

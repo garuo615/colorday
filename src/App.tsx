@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { Timeline } from './components/Timeline';
 import { TimerButton } from './components/TimerButton';
 import { TaskModal } from './components/TaskModal';
+import { EditTaskModal } from './components/EditTaskModal';
+import { AddTaskModal } from './components/AddTaskModal';
 import { useTimer } from './hooks/useTimer';
 import { useTaskStore } from './hooks/useTaskStore';
 import { getCategoryColor } from './utils/colors';
@@ -9,9 +11,11 @@ import type { Task } from './types';
 
 export default function App() {
   const { state: timerState, start, stop, reset } = useTimer();
-  const { tasks, addTask, deleteTask } = useTaskStore();
+  const { tasks, addTask, deleteTask, updateTask } = useTaskStore();
   const [showModal, setShowModal] = useState(false);
   const [pendingStart, setPendingStart] = useState<number | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [addingFromTimeline, setAddingFromTimeline] = useState<number | null>(null);
 
   const handleStop = useCallback(() => {
     const startTime = stop();
@@ -45,9 +49,36 @@ export default function App() {
     reset();
   }, [reset]);
 
-  const totalMinutes = tasks.reduce(
-    (acc, t) => acc + (t.endTime - t.startTime) / 60000,
-    0
+  const handleEditSave = useCallback(
+    (updated: Task) => {
+      updateTask(updated);
+      setEditingTask(null);
+    },
+    [updateTask]
+  );
+
+  const handleEditDelete = useCallback(
+    (id: string) => {
+      deleteTask(id);
+      setEditingTask(null);
+    },
+    [deleteTask]
+  );
+
+  const handleAddFromTimeline = useCallback(
+    (category: string, name: string, startTime: number, endTime: number) => {
+      const task: Task = {
+        id: crypto.randomUUID(),
+        category,
+        name,
+        startTime,
+        endTime,
+        color: getCategoryColor(category),
+      };
+      addTask(task);
+      setAddingFromTimeline(null);
+    },
+    [addTask]
   );
 
   return (
@@ -60,19 +91,11 @@ export default function App() {
     >
       {/* Header */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-white/50 shadow-sm">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-              ColorDay
-            </h1>
-            <p className="text-xs text-gray-400">{formatDate(new Date())}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400">記録済み</p>
-            <p className="text-sm font-bold text-indigo-600">
-              {tasks.length}件 / {Math.round(totalMinutes)}分
-            </p>
-          </div>
+        <div className="max-w-md mx-auto px-4 py-3">
+          <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
+            ColorDay
+          </h1>
+          <p className="text-xs text-gray-400">{formatDate(new Date())}</p>
         </div>
 
         {/* Running indicator bar */}
@@ -96,9 +119,13 @@ export default function App() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-bold text-gray-700">今日のタイムライン</h2>
-            <span className="text-xs text-gray-400">タップで詳細表示</span>
+            <span className="text-xs text-gray-400">タップで編集 / 空白をタップで追加</span>
           </div>
-          <Timeline tasks={tasks} onDeleteTask={deleteTask} />
+          <Timeline
+            tasks={tasks}
+            onEditTask={setEditingTask}
+            onAddTask={setAddingFromTimeline}
+          />
         </section>
 
         {/* Category legend */}
@@ -110,9 +137,29 @@ export default function App() {
         )}
       </main>
 
-      {/* Modal */}
+      {/* Timer recording modal */}
       {showModal && (
         <TaskModal onSave={handleSave} onCancel={handleCancel} />
+      )}
+
+      {/* Edit task modal */}
+      {editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onSave={handleEditSave}
+          onCancel={() => setEditingTask(null)}
+          onDelete={handleEditDelete}
+        />
+      )}
+
+      {/* Add task from timeline modal */}
+      {addingFromTimeline !== null && (
+        <AddTaskModal
+          initialStartMinutes={addingFromTimeline}
+          existingTasks={tasks}
+          onSave={handleAddFromTimeline}
+          onCancel={() => setAddingFromTimeline(null)}
+        />
       )}
     </div>
   );

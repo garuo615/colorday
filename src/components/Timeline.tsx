@@ -4,7 +4,8 @@ import { getCategoryColor } from '../utils/colors';
 
 interface Props {
   tasks: Task[];
-  onDeleteTask: (id: string) => void;
+  onEditTask: (task: Task) => void;
+  onAddTask: (startMinutes: number) => void;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -26,9 +27,8 @@ function durationMin(task: Task): number {
   return Math.round((task.endTime - task.startTime) / 60000);
 }
 
-export const Timeline: React.FC<Props> = ({ tasks, onDeleteTask }) => {
+export const Timeline: React.FC<Props> = ({ tasks, onEditTask, onAddTask }) => {
   const [nowPercent, setNowPercent] = useState(() => timeToPercent(Date.now()));
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const nowLineRef = useRef<HTMLDivElement>(null);
 
   // Update current time line every 30s
@@ -43,16 +43,28 @@ export const Timeline: React.FC<Props> = ({ tasks, onDeleteTask }) => {
     nowLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
+  const handleBlankClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const totalMinutes = Math.floor((y / TOTAL_HEIGHT) * 24 * 60);
+    onAddTask(Math.max(0, Math.min(1439, totalMinutes)));
+  };
+
   return (
-    <div className="relative w-full overflow-y-auto bg-white rounded-2xl shadow-inner border border-gray-100"
+    <div
+      className="relative w-full overflow-y-auto bg-white rounded-2xl shadow-inner border border-gray-100"
       style={{ height: '70vh' }}
     >
-      <div className="relative" style={{ height: TOTAL_HEIGHT }}>
+      <div
+        className="relative"
+        style={{ height: TOTAL_HEIGHT }}
+        onClick={handleBlankClick}
+      >
         {/* Hour lines & labels */}
         {HOURS.map((h) => (
           <div
             key={h}
-            className="absolute left-0 right-0 flex items-start"
+            className="absolute left-0 right-0 flex items-start pointer-events-none"
             style={{ top: h * HOUR_HEIGHT }}
           >
             <span className="text-xs text-gray-400 w-10 text-right pr-2 leading-none select-none">
@@ -70,20 +82,19 @@ export const Timeline: React.FC<Props> = ({ tasks, onDeleteTask }) => {
             18
           );
           const color = getCategoryColor(task.category);
-          const isSelected = selectedTask === task.id;
 
           return (
             <div
               key={task.id}
-              onClick={() => setSelectedTask(isSelected ? null : task.id)}
-              className="absolute left-11 right-2 rounded-lg cursor-pointer transition-all overflow-hidden"
+              onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+              className="absolute left-11 right-2 rounded-lg cursor-pointer transition-all overflow-hidden hover:opacity-100"
               style={{
                 top,
                 height,
                 backgroundColor: color,
                 opacity: 0.9,
-                zIndex: isSelected ? 10 : 1,
-                boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+                zIndex: 1,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
               }}
             >
               <div className="px-2 py-0.5 h-full flex flex-col justify-center">
@@ -99,16 +110,6 @@ export const Timeline: React.FC<Props> = ({ tasks, onDeleteTask }) => {
                   </p>
                 )}
               </div>
-
-              {/* Delete button when selected */}
-              {isSelected && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/30 text-white text-xs flex items-center justify-center hover:bg-black/50"
-                >
-                  ×
-                </button>
-              )}
             </div>
           );
         })}
