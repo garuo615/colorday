@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FIXED_CATEGORIES, getCategoryColor } from '../utils/colors';
 import type { Task } from '../types';
 
@@ -49,6 +49,11 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
   const [endStr, setEndStr] = useState(tsToTimeStr(task.endTime));
   const [error, setError] = useState('');
 
+  const scrollToInput = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }, []);
+
   const handleSave = () => {
     if (timeStrToMinutes(startStr) >= timeStrToMinutes(endStr)) {
       setError('開始時刻は終了時刻より前にしてください');
@@ -66,8 +71,10 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center px-4 py-8"
+           style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5">
         <h2 className="text-xl font-bold text-gray-800">タスクを編集</h2>
 
         {/* Category */}
@@ -132,6 +139,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
               type="time"
               value={startStr}
               onChange={(e) => { setStartStr(e.target.value); setError(''); }}
+              onFocus={scrollToInput}
               className={timeInputClass}
             />
           </div>
@@ -141,6 +149,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
               type="time"
               value={endStr}
               onChange={(e) => { setEndStr(e.target.value); setError(''); }}
+              onFocus={scrollToInput}
               className={timeInputClass}
             />
           </div>
@@ -169,6 +178,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
             保存
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
