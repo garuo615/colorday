@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Task } from '../types';
 import { getCategoryColor } from '../utils/colors';
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const HOUR_HEIGHT = 60; // px per hour
+const HOUR_HEIGHT = 240; // px per hour
 const TOTAL_HEIGHT = HOUR_HEIGHT * 24;
 
 function timeToPercent(ts: number): number {
