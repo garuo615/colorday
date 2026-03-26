@@ -32,6 +32,7 @@ export default function App() {
   const [mode, setMode] = useState<AppMode>('normal');
   const [showModal, setShowModal] = useState(false);
   const [pendingStart, setPendingStart] = useState<number | null>(null);
+  const [pendingEnd, setPendingEnd] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [addingFromTimeline, setAddingFromTimeline] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -102,31 +103,32 @@ export default function App() {
   const handleStop = useCallback(() => {
     const startTime = stop();
     setPendingStart(startTime);
+    setPendingEnd(Date.now());
     setShowModal(true);
   }, [stop]);
 
   const handleSave = useCallback(
-    (category: string, name: string) => {
-      if (pendingStart !== null) {
-        addTask({
-          id: crypto.randomUUID(),
-          category,
-          name,
-          startTime: pendingStart,
-          endTime: Date.now(),
-          color: getCategoryColor(category),
-        });
-      }
+    (category: string, name: string, startTime: number, endTime: number) => {
+      addTask({
+        id: crypto.randomUUID(),
+        category,
+        name,
+        startTime,
+        endTime,
+        color: getCategoryColor(category),
+      });
       setShowModal(false);
       setPendingStart(null);
+      setPendingEnd(null);
       reset();
     },
-    [pendingStart, addTask, reset]
+    [addTask, reset]
   );
 
   const handleCancel = useCallback(() => {
     setShowModal(false);
     setPendingStart(null);
+    setPendingEnd(null);
     reset();
   }, [reset]);
 
@@ -261,7 +263,14 @@ export default function App() {
       </main>
 
       {/* Modals */}
-      {showModal && <TaskModal onSave={handleSave} onCancel={handleCancel} />}
+      {showModal && pendingStart !== null && pendingEnd !== null && (
+        <TaskModal
+          initialStartTime={pendingStart}
+          initialEndTime={pendingEnd}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
       {editingTask && (
         <EditTaskModal
           task={editingTask}

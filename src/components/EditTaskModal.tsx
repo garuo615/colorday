@@ -19,46 +19,25 @@ function getTextColor(bg: string): string {
   return luminance > 0.5 ? '#333' : '#fff';
 }
 
-function minutesToTimestamp(hour: number, minute: number, reference: number): number {
+function tsToTimeStr(ts: number): string {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function timeStrToTs(timeStr: string, reference: number): number {
+  const [h, m] = timeStr.split(':').map(Number);
   const d = new Date(reference);
-  d.setHours(hour, minute, 0, 0);
+  d.setHours(h, m, 0, 0);
   return d.getTime();
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
-const selectClass =
-  'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white';
-
-interface TimePickerProps {
-  label: string;
-  hour: number;
-  minute: number;
-  onHourChange: (h: number) => void;
-  onMinuteChange: (m: number) => void;
+function timeStrToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
 }
 
-function TimePicker({ label, hour, minute, onHourChange, onMinuteChange }: TimePickerProps) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-600 mb-2">{label}</label>
-      <div className="flex items-center gap-1">
-        <select value={hour} onChange={(e) => onHourChange(Number(e.target.value))} className={selectClass}>
-          {HOURS.map((h) => (
-            <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
-          ))}
-        </select>
-        <span className="text-gray-500 font-medium">:</span>
-        <select value={minute} onChange={(e) => onMinuteChange(Number(e.target.value))} className={selectClass}>
-          {MINUTES.map((m) => (
-            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
+const timeInputClass =
+  'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400';
 
 export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelete }) => {
   const isFixedCategory = (FIXED_CATEGORIES as readonly string[]).includes(task.category);
@@ -66,36 +45,24 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
   const [selectedCategory, setSelectedCategory] = useState(isFixedCategory ? task.category : '仕事');
   const [customCategory, setCustomCategory] = useState(isFixedCategory ? '' : task.category);
   const [useCustom, setUseCustom] = useState(!isFixedCategory);
-
-  const startDate = new Date(task.startTime);
-  const endDate = new Date(task.endTime);
-  const [startHour, setStartHour] = useState(startDate.getHours());
-  const [startMin, setStartMin] = useState(
-    MINUTES.includes(startDate.getMinutes()) ? startDate.getMinutes() : 0
-  );
-  const [endHour, setEndHour] = useState(endDate.getHours());
-  const [endMin, setEndMin] = useState(
-    MINUTES.includes(endDate.getMinutes()) ? endDate.getMinutes() : 0
-  );
+  const [startStr, setStartStr] = useState(tsToTimeStr(task.startTime));
+  const [endStr, setEndStr] = useState(tsToTimeStr(task.endTime));
   const [error, setError] = useState('');
 
   const handleSave = () => {
-    const startTotal = startHour * 60 + startMin;
-    const endTotal = endHour * 60 + endMin;
-    if (startTotal >= endTotal) {
+    if (timeStrToMinutes(startStr) >= timeStrToMinutes(endStr)) {
       setError('開始時刻は終了時刻より前にしてください');
       return;
     }
     const category = useCustom ? customCategory.trim() || 'カスタム' : selectedCategory;
-    const updated: Task = {
+    onSave({
       ...task,
       name: taskName.trim(),
       category,
       color: getCategoryColor(category),
-      startTime: minutesToTimestamp(startHour, startMin, task.startTime),
-      endTime: minutesToTimestamp(endHour, endMin, task.endTime),
-    };
-    onSave(updated);
+      startTime: timeStrToTs(startStr, task.startTime),
+      endTime: timeStrToTs(endStr, task.endTime),
+    });
   };
 
   return (
@@ -141,7 +108,7 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
               placeholder="カテゴリ名を入力"
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className={timeInputClass}
             />
           )}
         </div>
@@ -153,26 +120,30 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
             type="text"
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className={timeInputClass}
           />
         </div>
 
         {/* Time pickers */}
         <div className="flex gap-4">
-          <TimePicker
-            label="開始時刻"
-            hour={startHour}
-            minute={startMin}
-            onHourChange={(h) => { setStartHour(h); setError(''); }}
-            onMinuteChange={(m) => { setStartMin(m); setError(''); }}
-          />
-          <TimePicker
-            label="終了時刻"
-            hour={endHour}
-            minute={endMin}
-            onHourChange={(h) => { setEndHour(h); setError(''); }}
-            onMinuteChange={(m) => { setEndMin(m); setError(''); }}
-          />
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-600 mb-2">開始時刻</label>
+            <input
+              type="time"
+              value={startStr}
+              onChange={(e) => { setStartStr(e.target.value); setError(''); }}
+              className={timeInputClass}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-600 mb-2">終了時刻</label>
+            <input
+              type="time"
+              value={endStr}
+              onChange={(e) => { setEndStr(e.target.value); setError(''); }}
+              className={timeInputClass}
+            />
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}

@@ -19,21 +19,25 @@ function getTextColor(bg: string): string {
   return luminance > 0.5 ? '#333' : '#fff';
 }
 
-function minutesToHHMM(minutes: number): string {
+function minutesToTimeStr(minutes: number): string {
   const clamped = Math.max(0, Math.min(1439, Math.floor(minutes)));
   return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`;
 }
 
-function hhmmToTimestamp(hhmm: string): number | null {
-  const match = hhmm.match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) return null;
-  const h = parseInt(match[1]);
-  const m = parseInt(match[2]);
-  if (h > 23 || m > 59) return null;
+function timeStrToTs(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return d.getTime();
 }
+
+function timeStrToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+const timeInputClass =
+  'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400';
 
 export const AddTaskModal: React.FC<Props> = ({
   initialStartMinutes,
@@ -42,8 +46,8 @@ export const AddTaskModal: React.FC<Props> = ({
   onCancel,
 }) => {
   const defaultEnd = Math.min(initialStartMinutes + 30, 1439);
-  const [startStr, setStartStr] = useState(minutesToHHMM(initialStartMinutes));
-  const [endStr, setEndStr] = useState(minutesToHHMM(defaultEnd));
+  const [startStr, setStartStr] = useState(minutesToTimeStr(initialStartMinutes));
+  const [endStr, setEndStr] = useState(minutesToTimeStr(defaultEnd));
   const [selectedCategory, setSelectedCategory] = useState<string>('仕事');
   const [customCategory, setCustomCategory] = useState('');
   const [useCustom, setUseCustom] = useState(false);
@@ -51,12 +55,13 @@ export const AddTaskModal: React.FC<Props> = ({
   const [error, setError] = useState('');
 
   const handleSave = () => {
-    const startTime = hhmmToTimestamp(startStr);
-    const endTime = hhmmToTimestamp(endStr);
+    if (timeStrToMinutes(startStr) >= timeStrToMinutes(endStr)) {
+      setError('開始時刻は終了時刻より前にしてください');
+      return;
+    }
 
-    if (!startTime) { setError('開始時刻の形式が正しくありません（HH:MM）'); return; }
-    if (!endTime) { setError('終了時刻の形式が正しくありません（HH:MM）'); return; }
-    if (startTime >= endTime) { setError('開始時刻は終了時刻より前にしてください'); return; }
+    const startTime = timeStrToTs(startStr);
+    const endTime = timeStrToTs(endStr);
 
     const hasOverlap = existingTasks.some(
       (t) => startTime < t.endTime && endTime > t.startTime
@@ -72,26 +77,24 @@ export const AddTaskModal: React.FC<Props> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-800">タスクを追加</h2>
 
-        {/* Time inputs */}
-        <div className="flex gap-3">
+        {/* Time pickers */}
+        <div className="flex gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-600 mb-2">開始時刻</label>
             <input
-              type="text"
-              placeholder="HH:MM"
+              type="time"
               value={startStr}
               onChange={(e) => { setStartStr(e.target.value); setError(''); }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className={timeInputClass}
             />
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-600 mb-2">終了時刻</label>
             <input
-              type="text"
-              placeholder="HH:MM"
+              type="time"
               value={endStr}
               onChange={(e) => { setEndStr(e.target.value); setError(''); }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className={timeInputClass}
             />
           </div>
         </div>
@@ -134,7 +137,7 @@ export const AddTaskModal: React.FC<Props> = ({
               placeholder="カテゴリ名を入力"
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className={timeInputClass}
             />
           )}
         </div>
@@ -147,7 +150,7 @@ export const AddTaskModal: React.FC<Props> = ({
             placeholder="例：ランチミーティング"
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className={timeInputClass}
           />
         </div>
 
