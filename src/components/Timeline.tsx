@@ -81,7 +81,7 @@ export const Timeline: React.FC<Props> = ({ tasks, onEditTask, onAddTask }) => {
             ((task.endTime - task.startTime) / (24 * 3600 * 1000)) * TOTAL_HEIGHT,
             18
           );
-          const color = getCategoryColor(task.category);
+          const color = task.color || getCategoryColor(task.category);
 
           return (
             <div

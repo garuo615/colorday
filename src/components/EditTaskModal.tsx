@@ -19,19 +19,45 @@ function getTextColor(bg: string): string {
   return luminance > 0.5 ? '#333' : '#fff';
 }
 
-function timeToMinutes(ts: number): number {
-  const d = new Date(ts);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function minutesToTimestamp(minutes: number, reference: number): number {
+function minutesToTimestamp(hour: number, minute: number, reference: number): number {
   const d = new Date(reference);
-  d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  d.setHours(hour, minute, 0, 0);
   return d.getTime();
 }
 
-function minutesToHHMM(minutes: number): string {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+const selectClass =
+  'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white';
+
+interface TimePickerProps {
+  label: string;
+  hour: number;
+  minute: number;
+  onHourChange: (h: number) => void;
+  onMinuteChange: (m: number) => void;
+}
+
+function TimePicker({ label, hour, minute, onHourChange, onMinuteChange }: TimePickerProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-600 mb-2">{label}</label>
+      <div className="flex items-center gap-1">
+        <select value={hour} onChange={(e) => onHourChange(Number(e.target.value))} className={selectClass}>
+          {HOURS.map((h) => (
+            <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+          ))}
+        </select>
+        <span className="text-gray-500 font-medium">:</span>
+        <select value={minute} onChange={(e) => onMinuteChange(Number(e.target.value))} className={selectClass}>
+          {MINUTES.map((m) => (
+            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
 }
 
 export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelete }) => {
@@ -40,12 +66,23 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
   const [selectedCategory, setSelectedCategory] = useState(isFixedCategory ? task.category : '仕事');
   const [customCategory, setCustomCategory] = useState(isFixedCategory ? '' : task.category);
   const [useCustom, setUseCustom] = useState(!isFixedCategory);
-  const [startMinutes, setStartMinutes] = useState(timeToMinutes(task.startTime));
-  const [endMinutes, setEndMinutes] = useState(timeToMinutes(task.endTime));
+
+  const startDate = new Date(task.startTime);
+  const endDate = new Date(task.endTime);
+  const [startHour, setStartHour] = useState(startDate.getHours());
+  const [startMin, setStartMin] = useState(
+    MINUTES.includes(startDate.getMinutes()) ? startDate.getMinutes() : 0
+  );
+  const [endHour, setEndHour] = useState(endDate.getHours());
+  const [endMin, setEndMin] = useState(
+    MINUTES.includes(endDate.getMinutes()) ? endDate.getMinutes() : 0
+  );
   const [error, setError] = useState('');
 
   const handleSave = () => {
-    if (startMinutes >= endMinutes) {
+    const startTotal = startHour * 60 + startMin;
+    const endTotal = endHour * 60 + endMin;
+    if (startTotal >= endTotal) {
       setError('開始時刻は終了時刻より前にしてください');
       return;
     }
@@ -55,8 +92,8 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
       name: taskName.trim(),
       category,
       color: getCategoryColor(category),
-      startTime: minutesToTimestamp(startMinutes, task.startTime),
-      endTime: minutesToTimestamp(endMinutes, task.endTime),
+      startTime: minutesToTimestamp(startHour, startMin, task.startTime),
+      endTime: minutesToTimestamp(endHour, endMin, task.endTime),
     };
     onSave(updated);
   };
@@ -120,50 +157,22 @@ export const EditTaskModal: React.FC<Props> = ({ task, onSave, onCancel, onDelet
           />
         </div>
 
-        {/* Start time slider */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">
-            開始時刻：<span className="font-bold text-indigo-600">{minutesToHHMM(startMinutes)}</span>
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={1439}
-            value={startMinutes}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setStartMinutes(v);
-              if (v >= endMinutes) setEndMinutes(Math.min(v + 1, 1439));
-              setError('');
-            }}
-            className="w-full accent-indigo-500"
+        {/* Time pickers */}
+        <div className="flex gap-4">
+          <TimePicker
+            label="開始時刻"
+            hour={startHour}
+            minute={startMin}
+            onHourChange={(h) => { setStartHour(h); setError(''); }}
+            onMinuteChange={(m) => { setStartMin(m); setError(''); }}
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-            <span>0:00</span><span>23:59</span>
-          </div>
-        </div>
-
-        {/* End time slider */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">
-            終了時刻：<span className="font-bold text-indigo-600">{minutesToHHMM(endMinutes)}</span>
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={1439}
-            value={endMinutes}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setEndMinutes(v);
-              if (v <= startMinutes) setStartMinutes(Math.max(v - 1, 0));
-              setError('');
-            }}
-            className="w-full accent-indigo-500"
+          <TimePicker
+            label="終了時刻"
+            hour={endHour}
+            minute={endMin}
+            onHourChange={(h) => { setEndHour(h); setError(''); }}
+            onMinuteChange={(m) => { setEndMin(m); setError(''); }}
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-            <span>0:00</span><span>23:59</span>
-          </div>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}
