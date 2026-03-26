@@ -66,114 +66,120 @@ export const TaskModal: React.FC<Props> = ({ initialStartTime, initialEndTime, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center px-4 py-8"
-           style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5">
-        <h2 className="text-xl font-bold text-gray-800">タスクを記録</h2>
-
-        {/* Time pickers */}
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-600 mb-2">開始時刻</label>
-            <input
-              type="time"
-              value={startStr}
-              onChange={(e) => { setStartStr(e.target.value); setError(''); }}
-              onFocus={scrollToInput}
-              className={timeInputClass}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-600 mb-2">終了時刻</label>
-            <input
-              type="time"
-              value={endStr}
-              onChange={(e) => { setEndStr(e.target.value); setError(''); }}
-              onFocus={scrollToInput}
-              className={timeInputClass}
-            />
-          </div>
+    <div className="fixed inset-0 z-50 bg-black/50">
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl flex flex-col"
+        style={{ maxHeight: '90dvh' }}
+      >
+        {/* Drag bar */}
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
 
-        {/* Category section */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">カテゴリ</label>
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {FIXED_CATEGORIES.map((cat) => {
-              const color = getCategoryColor(cat);
-              return (
-                <button
-                  key={cat}
-                  onClick={() => { setSelectedCategory(cat); setUseCustom(false); }}
-                  className={`py-1.5 rounded-lg text-xs font-medium transition-all border-2 ${
-                    !useCustom && selectedCategory === cat
-                      ? 'border-indigo-500 shadow-sm scale-105'
-                      : 'border-transparent opacity-70 hover:opacity-100'
-                  }`}
-                  style={{
-                    backgroundColor: color,
-                    color: getTextColor(color),
-                  }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
+        {/* Scrollable content */}
+        <div
+          className="overflow-y-auto flex-1 px-6 pb-6 space-y-5"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <h2 className="text-xl font-bold text-gray-800">タスクを記録</h2>
+
+          {/* Time pickers */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-600 mb-2">開始時刻</label>
+              <input
+                type="time"
+                value={startStr}
+                onChange={(e) => { setStartStr(e.target.value); setError(''); }}
+                onFocus={scrollToInput}
+                className={timeInputClass}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-600 mb-2">終了時刻</label>
+              <input
+                type="time"
+                value={endStr}
+                onChange={(e) => { setEndStr(e.target.value); setError(''); }}
+                onFocus={scrollToInput}
+                className={timeInputClass}
+              />
+            </div>
           </div>
 
-          {/* Custom category toggle */}
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="checkbox"
-              id="useCustom"
-              checked={useCustom}
-              onChange={(e) => setUseCustom(e.target.checked)}
-              className="rounded"
-            />
-            <label htmlFor="useCustom" className="text-sm text-gray-600">カスタムカテゴリを使う</label>
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">カテゴリ</label>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {FIXED_CATEGORIES.map((cat) => {
+                const color = getCategoryColor(cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => { setSelectedCategory(cat); setUseCustom(false); }}
+                    className={`py-1.5 rounded-lg text-xs font-medium transition-all border-2 ${
+                      !useCustom && selectedCategory === cat
+                        ? 'border-indigo-500 shadow-sm scale-105'
+                        : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: color, color: getTextColor(color) }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="useCustom"
+                checked={useCustom}
+                onChange={(e) => setUseCustom(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="useCustom" className="text-sm text-gray-600">カスタムカテゴリを使う</label>
+            </div>
+            {useCustom && (
+              <input
+                type="text"
+                placeholder="カテゴリ名を入力"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                className={timeInputClass}
+              />
+            )}
           </div>
-          {useCustom && (
+
+          {/* Task name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">タスク名（任意）</label>
             <input
               type="text"
-              placeholder="カテゴリ名を入力"
-              value={customCategory}
-              onChange={(e) => setCustomCategory(e.target.value)}
+              placeholder="例：ランチミーティング"
+              value={taskName}
+              onChange={(e) => setTaskName(e.target.value)}
               className={timeInputClass}
             />
-          )}
-        </div>
+          </div>
 
-        {/* Task name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">タスク名（任意）</label>
-          <input
-            type="text"
-            placeholder="例：ランチミーティング"
-            value={taskName}
-            onChange={(e) => setTaskName(e.target.value)}
-            className={timeInputClass}
-          />
-        </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        {/* Buttons */}
-        <div className="flex gap-3 pt-1">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition shadow"
-          >
-            保存
-          </button>
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 py-3 rounded-xl bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition shadow"
+            >
+              保存
+            </button>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
